@@ -1,0 +1,6 @@
+name,trigger_app,action_apps,runs_per_month
+New lead alert,Webhooks by Zapier,Formatter by Zapier;Filter by Zapier;Slack,400
+Invoice paid to sheet,Stripe,Google Sheets;Gmail,250
+Support ticket triage,Zendesk,OpenAI;Paths by Zapier;Slack;Asana;Gmail,900
+Weekly report,Schedule by Zapier,Google Sheets;Code by Zapier;Email by Zapier,4
+Course signup sync,Teachable,Mailchimp;Google Sheets,120

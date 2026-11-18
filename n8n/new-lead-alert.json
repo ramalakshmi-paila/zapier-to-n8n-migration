@@ -1,0 +1,160 @@
+{
+  "name": "New lead alert (migrated from Zapier)",
+  "nodes": [
+    {
+      "id": "74468583-1916-4d6d-876c-397b115a313b",
+      "name": "Read me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-440, -40],
+      "parameters": {
+        "content": "## New lead alert\nReplaces a 4-step Zap: Webhooks by Zapier > Formatter > Filter > Slack.\n\n**Before turning on**\n1. Create a Header Auth credential for the webhook node.\n2. Put your Slack incoming webhook URL in the Slack node.\n3. Send a test request and check the result.",
+        "color": 4,
+        "width": 380,
+        "height": 260
+      }
+    },
+    {
+      "id": "250cd361-403e-43bd-b40a-120b070b6a49",
+      "name": "New lead webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [0, 96],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-lead",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "e3ea175b-7cbe-4b78-b3e1-cb8f74d16682"
+    },
+    {
+      "id": "b07506c2-12ac-4308-ac68-e6b5fac737c4",
+      "name": "Clean lead fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [224, 96],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "lead-name",
+              "name": "name",
+              "value": "={{ ($json.body.name ?? '').toString().trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "lead-email",
+              "name": "email",
+              "value": "={{ ($json.body.email ?? '').toString().trim().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "lead-budget",
+              "name": "budget",
+              "value": "={{ Number($json.body.budget) || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "lead-source",
+              "name": "source",
+              "value": "={{ $json.body.source ?? 'website' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "1c2ef8a9-0c08-4ffc-b0fe-1b881ec2f0ff",
+      "name": "Has email and budget of 1000 or more?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [448, 96],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-email",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "budget-min",
+              "leftValue": "={{ $json.budget }}",
+              "rightValue": 1000,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8253bca7-368b-4097-a5f4-763af67a9e40",
+      "name": "Send Slack alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [672, 0],
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/REPLACE/WITH/YOUR-URL",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `New lead: ${$json.name} <${$json.email}>, budget ${$json.budget}, source ${$json.source}` }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "89580111-dfae-443b-8db5-a4a36c27cbd1",
+      "name": "Ignore lead",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [672, 192],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "New lead webhook": {
+      "main": [[{ "node": "Clean lead fields", "type": "main", "index": 0 }]]
+    },
+    "Clean lead fields": {
+      "main": [[{ "node": "Has email and budget of 1000 or more?", "type": "main", "index": 0 }]]
+    },
+    "Has email and budget of 1000 or more?": {
+      "main": [
+        [{ "node": "Send Slack alert", "type": "main", "index": 0 }],
+        [{ "node": "Ignore lead", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
